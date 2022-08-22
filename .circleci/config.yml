@@ -1,0 +1,39 @@
+version: 2.1
+
+executors:
+  just_ruby:
+    docker:
+      - image: cimg/ruby:3.1.2
+        environment:
+          BUNDLE_JOBS: 3
+          BUNDLE_RETRY: 3
+          BUNDLE_PATH: vendor/bundle
+
+commands:
+  bundle:
+    steps:
+      - run: gem install bundler
+      - restore_cache:
+          keys:
+            - bundle-{{ checksum "Gemfile.lock" }}
+            - bundle-
+      - run: bundle install && bundle clean --force
+      - save_cache:
+          key: bundle-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
+
+jobs:
+  build:
+    executor: just_ruby
+    resource_class: small
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - bundle
+      - run: bundle exec jekyll build
+
+workflows:
+  build:
+    jobs:
+      - build
